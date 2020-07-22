@@ -1,3 +1,6 @@
+#History
+# - 0722: 增加goback功能
+
 import random
 import functools
 from IPython.display import display, clear_output
@@ -7,6 +10,7 @@ def annotate(examples,
              options=None,
              shuffle=False,
              include_skip=True,
+             include_back=True,
              display_fn=display):
     """
     Build an interactive widget for annotating a list of input examples.
@@ -24,20 +28,21 @@ def annotate(examples,
 
     Returns
     -------
-    annotations : list of tuples, list of annotated examples (example, label)
+    annotations_dict : dict of tuples, list of annotated examples {key: (example, label)}
     """
     examples = list(examples)
     if shuffle:
         random.shuffle(examples)
 
-    annotations = []
+    annotations_dict = {}
     current_index = -1
 
     def set_label_text():
         nonlocal count_label
         count_label.value = '{} examples annotated, {} examples left'.format(
-            len(annotations), len(examples) - current_index
+            len(annotations_dict), len(examples) - current_index
         )
+
 
     def show_next():
         nonlocal current_index
@@ -52,11 +57,19 @@ def annotate(examples,
             clear_output(wait=True)
             display_fn(examples[current_index])
 
+    def show_previous():
+        nonlocal current_index
+        current_index =current_index-2
+
     def add_annotation(annotation):
-        annotations.append((examples[current_index], annotation))
+        annotations_dict[examples[current_index]]=(examples[current_index], annotation)
         show_next()
 
     def skip(btn):
+        show_next()
+
+    def goback(btn):
+        show_previous()
         show_next()
 
     count_label = HTML()
@@ -75,7 +88,7 @@ def annotate(examples,
     buttons = []
     
     if task_type == 'classification':
-        use_dropdown = len(options) > 5
+        use_dropdown = len(options) > 10
 
         if use_dropdown:
             dd = Dropdown(options=options)
@@ -126,6 +139,11 @@ def annotate(examples,
         btn = Button(description='skip')
         btn.on_click(skip)
         buttons.append(btn)
+    
+    if include_back:
+        btn = Button(description='goback')
+        btn.on_click(goback)
+        buttons.append(btn)
 
     box = HBox(buttons)
     display(box)
@@ -134,5 +152,4 @@ def annotate(examples,
     display(out)
 
     show_next()
-
-    return annotations
+    return annotations_dict
